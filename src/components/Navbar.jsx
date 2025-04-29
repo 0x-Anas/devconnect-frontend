@@ -1,7 +1,15 @@
-import { Bell, MessageCircle, User } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Bell, MessageCircle, User,LogOut } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
+  const navigate=useNavigate();
+
+  const handleLogout=()=>{
+    localStorage.removeItem('token')
+    sessionStorage.removeItem('token')
+    navigate('/login')
+  } 
+  
   return (
     <nav className="bg-black text-white px-6 py-3 flex items-center justify-between shadow-md">
       {/* Left: App Name */}
@@ -21,6 +29,7 @@ const Navbar = () => {
         <MessageCircle />
         <Bell />
         <User />
+        <LogOut onClick={handleLogout} title="Logout" className="hover:text-red-500" />
       </div>
     </nav>
   );

@@ -29,13 +29,14 @@ const Feed = () => {
     return <div>Loading......</div>
    }
 
-
+   console.log(posts);
 
 
   return (
     <div className='flex flex-col gap-4 p-4'>
       {posts.map((post)=>(
-        <Postcard key={post.id} post={post}/>
+        <Postcard key={post._id} post={post}/>
+      
       ))}
     </div>
   )

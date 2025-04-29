@@ -14,7 +14,7 @@ function Login() {
     email: '',
     password: ''
   });
-
+   const[rememberMe,setrememberMe]=useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -28,7 +28,13 @@ function Login() {
     try {
       const res = await axios.post('http://localhost:5000/api/auth/login', formData);
       toast.success(res.data.message);
-      localStorage.setItem('token', res.data.token);
+
+      if(rememberMe){
+        localStorage.setItem('token',res.data.token)
+      }else{
+        sessionStorage.setItem('token',res.data.token)
+      }
+      
       navigate('/')
       // Redirect logic would go here
     } catch (err) {
@@ -53,6 +59,7 @@ function Login() {
             value={formData.email}
             onChange={handleChange}
             required
+            autoComplete='email'
           />
           <input
             type="password"
@@ -62,7 +69,20 @@ function Login() {
             value={formData.password}
             onChange={handleChange}
             required
+            autoComplete='current-password'
           />
+
+           {/* ✅ Remember Me */}
+           <div className="flex items-center space-x-2 text-sm text-gray-600">
+            <input
+              type="checkbox"
+              id="rememberMe"
+              checked={rememberMe}
+              onChange={(e) => setrememberMe(e.target.checked)}
+              className="w-4 h-4"
+            />
+            <label htmlFor="rememberMe">Remember Me</label>
+          </div>
 
           <button
             type="submit"

@@ -1,26 +1,30 @@
-import React from 'react'
-import { BrowserRouter, Route, Router, Routes } from 'react-router-dom'
-import Home from './pages/Home'
-import Register from './pages/Register'
-import Dashboard from './pages/Dashboard'
-import Login from './pages/Login'
-import Layout from './layout/Layout'
-import { ToastContainer } from 'react-toastify'
-
+import React from "react";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import Home from "./pages/Home";
+import Register from "./pages/Register";
+import Dashboard from "./pages/Dashboard";
+import Login from "./pages/Login";
+import Layout from "./layout/Layout";
+import { ToastContainer } from "react-toastify";
+import PrivateRoute from "./components/PrivateRoute";
+import Profile from "./pages/Profile";
 
 const App = () => {
   return (
     <BrowserRouter>
-    <Routes>
-      <Route path='/' element={<Layout/>}>
+      <Routes>
+        {/*public routes*/}
+        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={<Login />} />
 
-       <Route index element={<Home/>}/>
-      <Route path='/register' element={<Register/>}/>
-      <Route path='/dashboard' element={<Dashboard/>}/>
-      <Route path='/login' element={<Login/>}/>
-    </Route>
-    </Routes>
-    <ToastContainer 
+        <Route element={<PrivateRoute />}>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Home />} />
+            <Route path="/profile" element={<Profile />} />
+          </Route>
+        </Route>
+      </Routes>
+      <ToastContainer
         position="top-right"
         autoClose={3000}
         hideProgressBar={false}
@@ -31,8 +35,7 @@ const App = () => {
         theme="colored"
       />
     </BrowserRouter>
-    
-  )
-}
+  );
+};
 
-export default App
+export default App;
