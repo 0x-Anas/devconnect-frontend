@@ -3,22 +3,22 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
-
-
 function Login() {
-
-  const navigate=useNavigate();
-
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
-   const[rememberMe,setrememberMe]=useState(false);
+
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -26,17 +26,23 @@ function Login() {
     setIsLoading(true);
 
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/login', formData);
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/auth/login`,
+        formData
+      );
+
       toast.success(res.data.message);
 
-      if(rememberMe){
-        localStorage.setItem('token',res.data.token)
-      }else{
-        sessionStorage.setItem('token',res.data.token)
+      // Save token
+      const token = res.data.token;
+      if (rememberMe) {
+        localStorage.setItem('token', token);
+      } else {
+        sessionStorage.setItem('token', token);
       }
-      
-      navigate('/')
-      // Redirect logic would go here
+
+      // Navigate to home/feed page
+      navigate('/');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Login failed');
     } finally {
@@ -44,7 +50,6 @@ function Login() {
     }
   };
 
- 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100">
       <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
@@ -59,7 +64,7 @@ function Login() {
             value={formData.email}
             onChange={handleChange}
             required
-            autoComplete='email'
+            autoComplete="email"
           />
           <input
             type="password"
@@ -69,16 +74,15 @@ function Login() {
             value={formData.password}
             onChange={handleChange}
             required
-            autoComplete='current-password'
+            autoComplete="current-password"
           />
 
-           {/* ✅ Remember Me */}
-           <div className="flex items-center space-x-2 text-sm text-gray-600">
+          <div className="flex items-center space-x-2 text-sm text-gray-600">
             <input
               type="checkbox"
               id="rememberMe"
               checked={rememberMe}
-              onChange={(e) => setrememberMe(e.target.checked)}
+              onChange={(e) => setRememberMe(e.target.checked)}
               className="w-4 h-4"
             />
             <label htmlFor="rememberMe">Remember Me</label>

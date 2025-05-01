@@ -1,45 +1,45 @@
-import React, { useEffect, useState } from 'react'
-
-import Postcard from './Postcard'
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import FeedCard from './FeedCard'; // 💡 Import new FeedCard component
 
 const Feed = () => {
-  const[posts,setPosts]=useState('');
-  const[loading,setLoading]=useState('true') //handling loading state
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-   useEffect(()=>{
-    //funcstion to fetch backend post
-    const fetchPost=async()=>{
-      try{
+  useEffect(() => {
+    const fetchPost = async () => {
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const response = await axios.get('http://localhost:5000/api/posts/all', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-      
-      const response=await axios.get('http://localhost:5000/api/posts/all');
-      setPosts(response.data);
-      setLoading(false);
-}catch(error){
-  console.error('Error fetching posts:', error);
-  setLoading(false);
-}
-    }
-    fetchPost(); //call the fetch function
+        setPosts(response.data);
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-   },[]);// Empty dependency array ensures this only runs once on component mount
+    fetchPost();
+  }, []);
 
-   if(loading){
-    return <div>Loading......</div>
-   }
-
-   console.log(posts);
-
+  if (loading) {
+    return <div className="text-center mt-10 text-lg font-semibold">Loading...</div>;
+  }
 
   return (
-    <div className='flex flex-col gap-4 p-4'>
-      {posts.map((post)=>(
-        <Postcard key={post._id} post={post}/>
-      
-      ))}
+    <div className="flex flex-col gap-4 p-4">
+      {posts.length > 0 ? (
+        posts.map((post) => <FeedCard key={post._id} post={post} />)
+      ) : (
+        <p className="text-center text-gray-500">No posts found.</p>
+      )}
     </div>
-  )
-}
+  );
+};
 
 export default Feed;
