@@ -8,7 +8,8 @@ import Layout from "./layout/Layout";
 import { ToastContainer } from "react-toastify";
 import PrivateRoute from "./components/PrivateRoute";
 import Profile from "./pages/Profile";
-import PostDetail from "./pages/PostDetails"; // ✅ Import PostDetail
+import PostDetail from "./pages/PostDetails"; 
+import CreatePost from "./pages/CreatePost";
 
 const App = () => {
   return (
@@ -23,7 +24,8 @@ const App = () => {
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/posts/:id" element={<PostDetail />} /> {/* ✅ Add this route */}
+            <Route path="/posts/:id" element={<PostDetail />} /> 
+            <Route path="/create" element={<CreatePost />} />
           </Route>
         </Route>
       </Routes>

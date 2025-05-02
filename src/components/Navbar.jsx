@@ -1,40 +1,71 @@
-
-import { Bell, MessageCircle, User,LogOut } from 'lucide-react';
+import { Search, Bell, MessageCircle, User, Plus } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
-  const navigate=useNavigate();
+  const navigate = useNavigate();
 
-  const handleLogout=()=>{
-    localStorage.removeItem('token')
-    sessionStorage.removeItem('token')
-    navigate('/login')
-  } 
+  const handleProfile = () => navigate('/profile');
+  const handleCreatePost = () => navigate('/create');
 
-  const handleProfile=()=>{
-    navigate('/profile')
-  }
-  
   return (
-    <nav className="bg-black text-white px-6 py-3 flex items-center justify-between shadow-md">
-      {/* Left: App Name */}
-      <Link to="/" className="text-2xl font-bold">DevConnect</Link>
+    <nav className="bg-gray-900 text-gray-100 px-6 py-3 flex items-center justify-between border-b border-gray-700 h-full">
+      {/* Left: Logo and Navigation */}
+      <div className="flex items-center space-x-8">
+        <Link to="/" className="text-xl font-semibold tracking-tight flex items-center">
+          <span className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+            DevConnect
+          </span>
+        </Link>
+        
+        <div className="hidden md:flex space-x-6">
+          <Link to="/feed" className="text-gray-300 hover:text-white transition-colors">Feed</Link>
+          <Link to="/communities" className="text-gray-300 hover:text-white transition-colors">Communities</Link>
+          <Link to="/explore" className="text-gray-300 hover:text-white transition-colors">Explore</Link>
+        </div>
+      </div>
 
       {/* Center: Search Bar */}
-      <div className="flex-1 mx-8">
+      <div className="flex-1 max-w-xl mx-6 relative">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <Search className="h-5 w-5 text-gray-400" />
+        </div>
         <input
           type="text"
-          placeholder="Search chats, communities..."
-          className="w-full px-4 py-2 rounded-lg text-black focus:outline-none"
+          placeholder="Search posts, developers, topics..."
+          className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100 placeholder-gray-400"
         />
       </div>
 
-      {/* Right: Icons */}
-      <div className="flex items-center gap-6 text-white text-xl cursor-pointer">
-        <MessageCircle />
-        <Bell />
-        <User onClick={handleProfile} className='hover:text-red-500' />
-        <LogOut onClick={handleLogout} title="Logout" className="hover:text-red-500" />
+      {/* Right: Actions */}
+      <div className="flex items-center space-x-4">
+        <button 
+          onClick={handleCreatePost}
+          className="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          <span className="text-sm font-medium">Create</span>
+        </button>
+        
+        <div className="flex items-center space-x-4 text-gray-300">
+          <button className="p-1.5 rounded-full hover:bg-gray-700 transition-colors relative">
+            <MessageCircle className="h-5 w-5" />
+            <span className="absolute -top-1 -right-1 bg-blue-500 text-xs rounded-full h-4 w-4 flex items-center justify-center">3</span>
+          </button>
+          
+          <button className="p-1.5 rounded-full hover:bg-gray-700 transition-colors relative">
+            <Bell className="h-5 w-5" />
+            <span className="absolute -top-1 -right-1 bg-blue-500 text-xs rounded-full h-4 w-4 flex items-center justify-center">5</span>
+          </button>
+          
+          <button 
+            onClick={handleProfile}
+            className="flex items-center space-x-2 hover:bg-gray-700 px-2 py-1 rounded-full transition-colors"
+          >
+            <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center text-white font-medium">
+              U
+            </div>
+          </button>
+        </div>
       </div>
     </nav>
   );
