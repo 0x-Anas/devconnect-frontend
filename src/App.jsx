@@ -10,6 +10,7 @@ import PrivateRoute from "./components/PrivateRoute";
 import Profile from "./pages/Profile";
 import PostDetail from "./pages/PostDetails"; 
 import CreatePost from "./pages/CreatePost";
+import ComingSoonPage from "./pages/ComingSoonPage";
 
 const App = () => {
   return (
@@ -26,6 +27,11 @@ const App = () => {
             <Route path="/profile" element={<Profile />} />
             <Route path="/posts/:id" element={<PostDetail />} /> 
             <Route path="/create" element={<CreatePost />} />
+            <Route path="/communities" element={<ComingSoonPage feature="Communities" />} />
+            <Route path="/explore" element={<ComingSoonPage feature="Explore" />} />
+             <Route path="/notifications" element={<ComingSoonPage feature="Notifications" />} /> 
+             <Route path="/saved" element={<ComingSoonPage feature="Saved Posts" />} />
+             <Route path="/discussions" element={<ComingSoonPage feature="Discussions" />} />
           </Route>
         </Route>
       </Routes>

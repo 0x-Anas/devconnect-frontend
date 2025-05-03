@@ -35,7 +35,7 @@ const Sidebar = ({ expanded, setExpanded }) => {
       {/* Main nav */}
       <div className="flex-1 overflow-y-auto py-6 px-2 space-y-2">
         {[
-          { icon: <Home className="h-5 w-5" />, label: 'Feed', path: '/feed' },
+          { icon: <Home className="h-5 w-5" />, label: 'Feed', path: '/' },
           { icon: <MessageSquare className="h-5 w-5" />, label: 'Discussions', path: '/discussions' },
           { icon: <Users className="h-5 w-5" />, label: 'Communities', path: '/communities' },
           { icon: <Compass className="h-5 w-5" />, label: 'Explore', path: '/explore' },

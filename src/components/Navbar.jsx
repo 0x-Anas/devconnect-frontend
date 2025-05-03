@@ -18,7 +18,7 @@ const Navbar = () => {
         </Link>
         
         <div className="hidden md:flex space-x-6">
-          <Link to="/feed" className="text-gray-300 hover:text-white transition-colors">Feed</Link>
+          <Link to="/" className="text-gray-300 hover:text-white transition-colors">Feed</Link>
           <Link to="/communities" className="text-gray-300 hover:text-white transition-colors">Communities</Link>
           <Link to="/explore" className="text-gray-300 hover:text-white transition-colors">Explore</Link>
         </div>

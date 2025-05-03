@@ -5,12 +5,15 @@ import "react-toastify/dist/ReactToastify.css";
 import moment from "moment";
 
 const currentUser = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user"));
+const token = localStorage.getItem("token") || sessionStorage.getItem("token");
 const username = currentUser?.username || "unknown";
+const currentUserId = currentUser?._id || "";
 
 const Postcard = ({ post }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const toggleExpand = () => setIsExpanded(!isExpanded);
 
@@ -22,7 +25,7 @@ const Postcard = ({ post }) => {
     try {
       setLoading(true);
 
-      const res = await axios.post(
+      await axios.post(
         `http://localhost:5000/api/posts/${post._id}/comment`,
         {
           username,
@@ -48,6 +51,34 @@ const Postcard = ({ post }) => {
     }
   };
 
+  const handleDeletePost = async () => {
+    if (!window.confirm("Are you sure you want to delete this post?")) return;
+
+    try {
+      setDeleting(true);
+      await axios.delete(`http://localhost:5000/api/posts/${post._id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      toast.success("Post deleted successfully!", {
+        position: "bottom-right",
+        autoClose: 3000,
+      });
+
+      window.location.reload(); // optional: replace with local state update
+    } catch (error) {
+      console.error("❌ Error deleting post:", error);
+      toast.error("Failed to delete post", {
+        position: "bottom-right",
+        autoClose: 3000,
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div
       className="bg-white shadow-md rounded-xl p-4 mb-4 transition-all duration-300 hover:shadow-lg cursor-pointer"
@@ -68,6 +99,20 @@ const Postcard = ({ post }) => {
             </span>
           </div>
         </div>
+
+        {/* Delete Button (Only for author) */}
+        {post.author === currentUserId && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeletePost();
+            }}
+            disabled={deleting}
+            className="text-red-500 text-sm font-medium hover:underline"
+          >
+            {deleting ? "Deleting..." : "Delete"}
+          </button>
+        )}
       </div>
 
       {/* Always visible title */}
@@ -78,7 +123,6 @@ const Postcard = ({ post }) => {
       {/* Expandable section */}
       {isExpanded && (
         <div className="mt-4">
-          {/* Optional image */}
           {post.image && (
             <img
               src={`http://localhost:5000${post.image}`}
@@ -87,14 +131,15 @@ const Postcard = ({ post }) => {
             />
           )}
 
-          {/* Optional full content */}
           {post.content && (
             <p className="text-gray-700 mt-2">{post.content}</p>
           )}
 
-          {/* Comment Section */}
+          {/* Comments */}
           <div className="mt-4">
-            <h4 className="text-sm font-semibold text-gray-700 mb-2">Comments</h4>
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">
+              Comments
+            </h4>
             {post.comments && post.comments.length > 0 ? (
               post.comments.map((comment, index) => (
                 <div key={index} className="bg-gray-100 p-2 rounded-md mb-1">

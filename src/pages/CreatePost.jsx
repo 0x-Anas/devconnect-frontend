@@ -23,6 +23,15 @@ const CreatePost = () => {
       return;
     }
 
+    
+  const token = localStorage.getItem("token")||sessionStorage.getItem('token');
+  if (!token) {
+    setError("Please login first");
+    navigate('/login');
+    return;
+  }
+
+
     setLoading(true);
     setError(null);
 
@@ -32,25 +41,34 @@ const CreatePost = () => {
     formData.append("image", image);
 
     try {
-      const res = await axios.post(
+      
+      console.log("Token:", localStorage.getItem("token"));
+
+      const response = await axios.post(
         "http://localhost:5000/api/posts/create",
         formData,
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
           },
         }
       );
-      console.log("post created:", res.data);
+      console.log("post created:", response.data);
       // Reset form
       setTitle("");
       setContent("");
       setImage(null);
 
-      navigate('/feed');
-    } catch (err) {
-      console.error("Error creating post:", err);
-      setError("Error creating post!");
+      navigate('/');
+    }catch(err) {
+      console.error("Full error:", err);
+      alert(err?.response?.data?.message || "Unknown error");
+      if (err.response?.status === 401) {
+        setError("Session expired. Please login again.");
+        navigate("/login");
+      } else {
+        setError(err.response?.data?.message || "Something went wrong");
+      }
     } finally {
       setLoading(false);
     }
@@ -66,7 +84,7 @@ const CreatePost = () => {
           onChange={(e) => setTitle(e.target.value)}
           placeholder="New Post Title"
           className="w-full text-2xl font-semibold p-2 border-b border-gray-300 mb-4 focus:outline-none"
-          required
+         required
         />
 
         <div className="flex items-center gap-4 mb-4">
@@ -83,7 +101,7 @@ const CreatePost = () => {
               accept="image/*"
               onChange={handleImageChange}
               className="hidden"
-              required
+              
             />
           </label>
         </div>

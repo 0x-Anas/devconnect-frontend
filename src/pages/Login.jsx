@@ -35,6 +35,7 @@ function Login() {
 
       // Save token
       const token = res.data.token;
+      console.log("Token received from backend:", token);
       if (rememberMe) {
         localStorage.setItem('token', token);
       } else {
