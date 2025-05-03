@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const CreatePost = () => {                          
   const [title, setTitle] = useState("");
@@ -7,6 +8,8 @@ const CreatePost = () => {
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const navigate=useNavigate();
 
   const handleImageChange = (e) => {
     setImage(e.target.files[0]);
@@ -43,6 +46,8 @@ const CreatePost = () => {
       setTitle("");
       setContent("");
       setImage(null);
+
+      navigate('/feed');
     } catch (err) {
       console.error("Error creating post:", err);
       setError("Error creating post!");
