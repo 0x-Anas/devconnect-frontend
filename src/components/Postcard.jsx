@@ -1,177 +1,191 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import moment from "moment";
 
-const currentUser = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user"));
-const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-const username = currentUser?.username || "unknown";
-const currentUserId = currentUser?._id || "";
 
-const Postcard = ({ post }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+const Postcard = ({ post, isDetailedView }) => {
+  // User data
+  const currentUser = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "null");
+  const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+  const currentUserId = currentUser?._id || currentUser?.id || null;
+
+  // Debug
+  console.log("[OWNERSHIP DEBUG] Current User ID:", currentUserId);
+  console.log("[OWNERSHIP DEBUG] Post Object:", JSON.parse(JSON.stringify(post)));
+
+  // States
   const [commentText, setCommentText] = useState("");
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [postData, setPostData] = useState(post);
+//render dynaamically {comments+post}
+  useEffect(() => {
+    setPostData(post);
+  }, [post]);
 
-  const toggleExpand = () => setIsExpanded(!isExpanded);
-
-  const handleCommentSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!commentText.trim()) return;
-
-    try {
-      setLoading(true);
-
-      await axios.post(
-        `http://localhost:5000/api/posts/${post._id}/comment`,
-        {
-          username,
-          text: commentText,
-        }
-      );
-
-      toast.success("Comment added successfully!", {
-        position: "bottom-right",
-        autoClose: 3000,
-      });
-
-      setCommentText("");
-      window.location.reload(); // optional: replace with state update later
-    } catch (err) {
-      console.error("❌ Error adding comment", err);
-      toast.error("Something went wrong. Please try again.", {
-        position: "bottom-right",
-        autoClose: 3000,
-      });
-    } finally {
-      setLoading(false);
-    }
+ // Unified ID access
+  const getPostOwnerId = () => {
+    if (postData.userId) return postData.userId;
+    if (postData.user?._id) return postData.user._id;
+    if (typeof postData.user === "string") return postData.user; // Direct ID string
+    return null;
   };
 
-  const handleDeletePost = async () => {
-    if (!window.confirm("Are you sure you want to delete this post?")) return;
+  const postOwnerId = getPostOwnerId();
+  const isOwner = currentUserId && postOwnerId 
+    ? currentUserId.toString() === postOwnerId.toString() 
+    : false;
 
+  console.log("[OWNERSHIP VERIFICATION]", {
+    isOwner,
+    currentUserId,
+    postOwnerId,
+    equality: currentUserId === postOwnerId,
+    types: {
+      current: typeof currentUserId,
+      post: typeof postOwnerId
+    }
+  });
+
+  const handleDelete = async () => {
+    if (!window.confirm("Are you sure you want to delete this post?")) return;
+    
     try {
       setDeleting(true);
-      await axios.delete(`http://localhost:5000/api/posts/${post._id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      await axios.delete(`http://localhost:5000/api/posts/${postData._id}`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
-
-      toast.success("Post deleted successfully!", {
-        position: "bottom-right",
-        autoClose: 3000,
-      });
-
-      window.location.reload(); // optional: replace with local state update
+      toast.success("Post deleted!");
+      window.location.reload();
     } catch (error) {
-      console.error("❌ Error deleting post:", error);
-      toast.error("Failed to delete post", {
-        position: "bottom-right",
-        autoClose: 3000,
-      });
+      console.error("Delete error:", error);
+      toast.error(error.response?.data?.message || "Deletion failed");
     } finally {
       setDeleting(false);
     }
   };
 
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+
+    try {
+      setLoading(true);
+      const response = await axios.post(
+        `http://localhost:5000/api/posts/${postData._id}/comment`,
+        {
+          username: currentUser?.username || "anonymous",
+          text: commentText,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setPostData(response.data);
+      toast.success("Comment added!");
+      setCommentText("");
+    } catch (error) {
+      console.error("Comment error:", error);
+      toast.error("Failed to add comment");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div
-      className="bg-white shadow-md rounded-xl p-4 mb-4 transition-all duration-300 hover:shadow-lg cursor-pointer"
-      onClick={toggleExpand}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <img
-            src={post.profilePic || "https://via.placeholder.com/40"}
-            alt="user"
-            className="w-10 h-10 rounded-full"
-          />
-          <div>
-            <h4 className="font-semibold">@{post.username}</h4>
-            <span className="text-sm text-gray-500">
-              {moment(post.createdAt).fromNow()}
-            </span>
+    <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-md mb-4 max-w-4xl mx-auto">
+      <div className="flex justify-between items-start">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-1">
+            {postData.title}
+          </h2>
+          <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Posted by <span className="font-semibold">{postData.username}</span> ·{" "}
+            {moment(postData.createdAt).fromNow()}
+            <div className="text-xs mt-1 bg-gray-100 dark:bg-gray-800 p-1 rounded">
+              <span className="font-mono">UserID: {postOwnerId || "Not detected"}</span>
+              {postOwnerId && (
+                <span className={`ml-2 ${isOwner ? "text-green-500" : "text-red-500"}`}>
+                  ({isOwner ? "YOU OWN THIS" : "NOT YOUR POST"})
+                </span>
+              )}
+            </div>
           </div>
         </div>
-
-        {/* Delete Button (Only for author) */}
-        {post.author === currentUserId && (
+        
+        {isOwner && (
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDeletePost();
-            }}
+            onClick={handleDelete}
             disabled={deleting}
-            className="text-red-500 text-sm font-medium hover:underline"
+            className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm transition"
           >
-            {deleting ? "Deleting..." : "Delete"}
+            {deleting ? "Deleting..." : "Delete Post"}
           </button>
         )}
       </div>
 
-      {/* Always visible title */}
-      <div className="mt-3">
-        <h2 className="text-xl font-semibold text-gray-900">{post.title}</h2>
-      </div>
+      {postData.image && (
+        <img
+          src={`http://localhost:5000${postData.image}`}
+          alt="Post"
+          className="w-full h-auto rounded mb-4 max-h-96 object-contain"
+          onError={(e) => {
+            console.error("Image failed to load:", e.target.src);
+            e.target.style.display = "none";
+          }}
+        />
+      )}
 
-      {/* Expandable section */}
-      {isExpanded && (
-        <div className="mt-4">
-          {post.image && (
-            <img
-              src={`http://localhost:5000${post.image}`}
-              alt="Post"
-              className="w-full max-h-80 object-cover mt-2 rounded-md"
-            />
-          )}
+      <p className="text-gray-700 dark:text-gray-300 mb-4 whitespace-pre-wrap">
+        {postData.content}
+      </p>
 
-          {post.content && (
-            <p className="text-gray-700 mt-2">{post.content}</p>
-          )}
-
-          {/* Comments */}
-          <div className="mt-4">
-            <h4 className="text-sm font-semibold text-gray-700 mb-2">
-              Comments
-            </h4>
-            {post.comments && post.comments.length > 0 ? (
-              post.comments.map((comment, index) => (
-                <div key={index} className="bg-gray-100 p-2 rounded-md mb-1">
-                  <div className="text-sm font-medium text-gray-800">
-                    @{comment.username}
+      {isDetailedView && (
+        <div className="mt-6">
+          <h3 className="text-xl font-semibold mb-4">
+            Comments ({postData.comments?.length || 0})
+          </h3>
+          
+          {postData.comments?.length > 0 ? (
+            <div className="space-y-4 mb-6">
+              {postData.comments.map((comment, index) => (
+                <div key={index} className="bg-gray-100 dark:bg-gray-800 p-3 rounded">
+                  <div className="font-medium text-gray-800 dark:text-gray-200">
+                    {comment.username}
                   </div>
-                  <div className="text-sm text-gray-600">{comment.text}</div>
-                  <div className="text-xs text-gray-400">
+                  <p className="text-gray-600 dark:text-gray-300">{comment.text}</p>
+                  <div className="text-xs text-gray-500 mt-1">
                     {moment(comment.createdAt).fromNow()}
                   </div>
                 </div>
-              ))
-            ) : (
-              <p className="text-sm text-gray-500">No comments yet.</p>
-            )}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 mb-6">No comments yet</p>
+          )}
 
-          {/* Comment Form */}
-          <form onSubmit={handleCommentSubmit} className="mt-3 flex gap-2">
-            <input
-              type="text"
+          <form onSubmit={handleCommentSubmit} className="mt-4">
+            <textarea
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Add a comment..."
-              className="flex-1 p-2 border border-gray-300 rounded-md text-sm"
+              className="w-full p-2 border rounded mb-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+              rows="3"
+              placeholder="Write a comment..."
+              required
             />
             <button
               type="submit"
               disabled={loading}
-              className="bg-blue-500 text-white px-3 py-1 rounded-md text-sm"
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:opacity-50"
             >
-              {loading ? "Posting..." : "Post"}
+              {loading ? (
+                <span className="flex items-center">
+                  <span className="animate-spin mr-2">↻</span>
+                  Posting...
+                </span>
+              ) : (
+                "Post Comment"
+              )}
             </button>
           </form>
         </div>
