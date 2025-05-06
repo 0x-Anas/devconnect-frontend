@@ -79,7 +79,9 @@ const Postcard = ({ post, isDetailedView }) => {
           username: currentUser?.username || "anonymous",
           text: commentText,
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` },
+        
+      }
       );
       setPostData(response.data);
       toast.success("Comment added!");
