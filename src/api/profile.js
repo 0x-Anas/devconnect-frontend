@@ -1,25 +1,22 @@
 // src/api/profile.js
 import axiosInstance from "./axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+
 
 // Get current user's profile
-export const getMyProfile = async (token) => {
-  const res = await axiosInstance.get(`${API_BASE_URL}/profile/me`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  return res.data;
+export const getMyProfile = async () => {
+  try {
+    const res = await axiosInstance.get('/profile/me');
+    console.log('Profile data:', res.data); // Check response
+    return res.data;
+  } catch (err) {
+    console.error('Profile error:', err.response?.data);
+    throw err;
+  }
 };
-
 // Update current user's profile
-export const updateMyProfile = async (profileData, token) => {
-  const res = await axiosInstance.post(`${API_BASE_URL}/profile`, profileData, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  return res.data;
+export const updateMyProfile = async (profileData) => {
+  const res = await axiosInstance.post(`/profile`, profileData)
+ return res.data;
 };
 

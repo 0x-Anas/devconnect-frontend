@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { updateMyProfile, getMyProfile } from "../api/profile";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import axiosInstance from "../api/axios";
 import {
   Edit,
   Globe,
@@ -63,7 +64,40 @@ const Profile = () => {
     };
     fetchProfile();
   }, [navigate]);
+  //handle logout function in profile page
 
+  const handleLogout = async () => {
+    try {
+      await axiosInstance.post("/auth/logout", {}, { 
+        withCredentials: true 
+      });
+      
+      // Clear all client-side storage
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("user");
+      
+      // Redirect to login
+      navigate("/login", { replace: true });
+      
+      // Optional: Refresh to ensure clean state
+      window.location.reload();
+    } catch (err) {
+      console.error("Logout failed:", err);
+      
+      // Force cleanup even if request fails
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      toast.error(
+        err.response?.data?.message || 
+        "Logged out locally (server unreachable)"
+      );
+      
+      navigate("/login");
+    }
+  };
   const handleChange = (e) => {
     setFormData((prev) => ({
       ...prev,
@@ -138,6 +172,12 @@ const Profile = () => {
               >
                 <Edit className="h-4 w-4" />
                 <span>{isEditing ? "Cancel" : "Edit Profile"}</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+              >
+                <span>Logout</span>
               </button>
             </div>
 
