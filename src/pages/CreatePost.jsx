@@ -1,5 +1,5 @@
 import React, { useState, } from "react";
-import axios from "axios";
+import axiosInstance from "../api/axios";
 import { useNavigate } from "react-router-dom";
 
 const CreatePost = () => {                          
@@ -44,7 +44,7 @@ const CreatePost = () => {
       
       console.log("Token:", localStorage.getItem("token"));
 
-      const response = await axios.post(
+      const response = await axiosInstance.post(
         "http://localhost:5000/api/posts/create",
         formData,
         {

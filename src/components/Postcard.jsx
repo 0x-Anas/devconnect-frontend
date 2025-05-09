@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import axiosInstance from "../api/axios";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import moment from "moment";
@@ -54,7 +54,7 @@ const Postcard = ({ post, isDetailedView }) => {
     
     try {
       setDeleting(true);
-      await axios.delete(`http://localhost:5000/api/posts/${postData._id}`, {
+      await axiosInstance.delete(`http://localhost:5000/api/posts/${postData._id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success("Post deleted!");
@@ -73,7 +73,7 @@ const Postcard = ({ post, isDetailedView }) => {
 
     try {
       setLoading(true);
-      const response = await axios.post(
+      const response = await axiosInstance.post(
         `http://localhost:5000/api/posts/${postData._id}/comment`,
         {
           username: currentUser?.username || "anonymous",

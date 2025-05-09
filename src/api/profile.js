@@ -4,7 +4,7 @@ import axiosInstance from "./axios";
 
 
 // Get current user's profile
-export const getMyProfile = async () => {
+export const  getMyProfile = async () => {
   try {
     const res = await axiosInstance.get('/profile/me');
     console.log('Profile data:', res.data); // Check response

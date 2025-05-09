@@ -8,6 +8,7 @@ import Layout from "./layout/Layout";
 import { ToastContainer } from "react-toastify";
 import PrivateRoute from "./components/PrivateRoute";
 import Profile from "./pages/Profile";
+import ProfilePage from "./pages/ProfilePage";
 import PostDetail from "./pages/PostDetails"; 
 import CreatePost from "./pages/CreatePost";
 import ComingSoonPage from "./pages/ComingSoonPage";
@@ -24,7 +25,8 @@ const App = () => {
         <Route element={<PrivateRoute />}>
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
-            <Route path="/profile" element={<Profile />} />
+            <Route path="/profile" element={<Profile />} /> {/*viewing own profile*/}
+            <Route path="/profile/:userId" element={<ProfilePage/>}/> {/*viewing other users profile*/}
             <Route path="/posts/:id" element={<PostDetail />} /> 
             <Route path="/create" element={<CreatePost />} />
             <Route path="/communities" element={<ComingSoonPage feature="Communities" />} />
