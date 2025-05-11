@@ -2,10 +2,14 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axios';
 import { toast } from 'react-toastify';
+import { useDispatch } from 'react-redux';
+import { setCredentials } from '../redux/authSlice';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 function Login() {
+  const dispatch = useDispatch();
+
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -52,7 +56,11 @@ function Login() {
         sessionStorage.setItem('user', userString);
       }
 
+       // 🔥 Update Redux store
+  dispatch(setCredentials({ token, user }));
       navigate('/');
+      
+
     } catch (err) {
       console.error("Login error:", err);
       toast.error(err.response?.data?.message || 'Login failed');
