@@ -1,11 +1,19 @@
 import { Search, Bell, MessageCircle, User, Plus } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import { logout } from '../redux/authSlice'; // adjust path
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const user = useSelector(state => state.auth.user);
 
   const handleProfile = () => navigate('/profile');
   const handleCreatePost = () => navigate('/create');
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate('/login');
+  };
 
   return (
     <nav className="bg-gray-900 text-gray-100 px-6 py-3 flex items-center justify-between border-b border-gray-700 h-full">
@@ -57,14 +65,28 @@ const Navbar = () => {
             <span className="absolute -top-1 -right-1 bg-blue-500 text-xs rounded-full h-4 w-4 flex items-center justify-center">5</span>
           </button>
           
-          <button 
-            onClick={handleProfile}
-            className="flex items-center space-x-2 hover:bg-gray-700 px-2 py-1 rounded-full transition-colors"
-          >
-            <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center text-white font-medium">
-              U
-            </div>
-          </button>
+          {user ? (
+            <>
+              <button 
+                onClick={handleProfile}
+                className="flex items-center space-x-2 hover:bg-gray-700 px-2 py-1 rounded-full transition-colors"
+              >
+                <img
+                  src={user.profilePicture}
+                  alt="profile"
+                  className="h-8 w-8 rounded-full object-cover"
+                />
+              </button>
+              <button
+                onClick={handleLogout}
+                className="bg-red-600 px-3 py-1.5 rounded hover:bg-red-700 text-sm"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <Link to="/login" className="bg-blue-500 px-3 py-1.5 rounded hover:bg-blue-600 text-sm">Login</Link>
+          )}
         </div>
       </div>
     </nav>
@@ -72,4 +94,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-

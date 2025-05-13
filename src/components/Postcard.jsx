@@ -3,6 +3,7 @@ import axiosInstance from "../api/axios";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import moment from "moment";
+import { Link } from "react-router-dom";
 
 
 const Postcard = ({ post, isDetailedView }) => {
@@ -102,7 +103,9 @@ const Postcard = ({ post, isDetailedView }) => {
             {postData.title}
           </h2>
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            Posted by <span className="font-semibold">{postData.username}</span> ·{" "}
+            Posted by <Link to={`/profile/${postData.username}`} className="font-semibold text-blue-600 hover:underline">
+  {postData.username}
+</Link>{" "}·{" "}
             {moment(postData.createdAt).fromNow()}
             <div className="text-xs mt-1 bg-gray-100 dark:bg-gray-800 p-1 rounded">
               <span className="font-mono">UserID: {postOwnerId || "Not detected"}</span>

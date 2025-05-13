@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axios';
 import { toast } from 'react-toastify';
 import { useDispatch } from 'react-redux';
-import { setCredentials } from '../redux/authSlice';
+import { loginSuccess } from '../redux/authSlice';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
@@ -57,7 +57,7 @@ function Login() {
       }
 
        // 🔥 Update Redux store
-  dispatch(setCredentials({ token, user }));
+  dispatch(loginSuccess({ token, user }));
       navigate('/');
       
 

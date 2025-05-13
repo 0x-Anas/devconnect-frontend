@@ -26,7 +26,7 @@ const App = () => {
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
             <Route path="/profile" element={<Profile />} /> {/*viewing own profile*/}
-            <Route path="/profile/:userId" element={<ProfilePage/>}/> {/*viewing other users profile*/}
+            <Route path="/profile/:username" element={<ProfilePage/>}/> {/*viewing other users profile*/}
             <Route path="/posts/:id" element={<PostDetail />} /> 
             <Route path="/create" element={<CreatePost />} />
             <Route path="/communities" element={<ComingSoonPage feature="Communities" />} />
