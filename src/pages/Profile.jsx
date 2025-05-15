@@ -1,17 +1,11 @@
-import React, { useState, useEffect } from "react";
-import { updateMyProfile, getMyProfile } from "../api/profile";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { useDispatch, useSelector } from "react-redux";
+import { updateProfile, selectUser } from "../redux/authSlice";
 import axiosInstance from "../api/axios";
-import {
-  Edit,
-  Globe,
-  Github,
-  Linkedin,
-  MapPin,
-  User,
-  Loader2,
-} from "lucide-react";
+import { updateMyProfile, getMyProfile } from "../api/profile";
+import { Edit, Globe, Github, Linkedin, MapPin, User, Loader2 } from "lucide-react";
 
 const Profile = () => {
   const [profile, setProfile] = useState(null);
@@ -26,6 +20,9 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const user = useSelector(selectUser);
+  const fileInputRef = useRef(null);
 
   const ensureValidUrl = (url) => {
     if (!url) return "";
@@ -40,6 +37,7 @@ const Profile = () => {
       if (!token) {
         toast.error("Please login to view your profile");
         navigate("/");
+        return;
       }
 
       try {
@@ -54,6 +52,7 @@ const Profile = () => {
           location: profileData.location || "",
         });
       } catch (err) {
+        console.error("Profile fetch error:", err);
         if (err.response?.status === 401) {
           toast.error("Session expired. Please log in again");
           localStorage.removeItem("token");
@@ -61,38 +60,58 @@ const Profile = () => {
           navigate("/login");
         } else {
           toast.error("Failed to load profile");
-          console.error(err);
         }
       } finally {
         setIsLoading(false);
       }
     };
+
     fetchProfile();
   }, [navigate]);
 
   const handleLogout = async () => {
     try {
       await axiosInstance.post("/auth/logout", {}, { withCredentials: true });
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      sessionStorage.removeItem("token");
-      sessionStorage.removeItem("user");
-      navigate("/login", { replace: true });
-      window.location.reload();
     } catch (err) {
-      console.error("Logout failed:", err);
+      console.error("Logout API error:", err);
+    } finally {
       localStorage.clear();
       sessionStorage.clear();
-      toast.error(err.response?.data?.message || "Logged out locally");
-      navigate("/login");
+      navigate("/login", { replace: true });
+      window.location.reload();
     }
   };
 
   const handleChange = (e) => {
-    setFormData((prev) => ({
+    const { name, value } = e.target;
+    setFormData(prev => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: value,
     }));
+  };
+
+  const handleImageChange = async (e) => {
+    if (!e.target.files?.[0]) return;
+    
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append("profilePicture", file);
+
+    try {
+      const res = await axiosInstance.put("/profile/upload/profile-picture", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      dispatch(updateProfile({ avatar: res.data.avatar }));
+      if (profile) {
+        setProfile({ ...profile, avatar: res.data.avatar });
+      }
+      toast.success("Profile picture updated successfully");
+    } catch (err) {
+      console.error("Upload failed", err);
+      toast.error("Failed to update profile picture");
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -108,11 +127,12 @@ const Profile = () => {
       setIsLoading(true);
       const normalizedData = {
         ...formData,
+        skills: formData.skills.split(",").map(skill => skill.trim()),
         github: ensureValidUrl(formData.github),
         linkedin: ensureValidUrl(formData.linkedin),
-        website: ensureValidUrl(formData.website)
+        website: ensureValidUrl(formData.website),
       };
-      
+
       await updateMyProfile(normalizedData, token);
       const freshData = await getMyProfile(token);
       setProfile(freshData);
@@ -134,6 +154,14 @@ const Profile = () => {
     );
   }
 
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Failed to load profile data</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
@@ -142,64 +170,91 @@ const Profile = () => {
           <div className="px-6 pb-6 -mt-16 relative">
             <div className="flex justify-between items-end">
               <div className="flex items-end">
-                <div className="h-24 w-24 rounded-full border-4 border-white bg-white flex items-center justify-center shadow-md">
+                <div 
+                  className="relative group h-24 w-24 rounded-full border-4 border-white bg-white flex items-center justify-center shadow-md overflow-hidden cursor-pointer"
+                  onClick={() => isEditing && fileInputRef.current?.click()}
+                >
                   {profile?.avatar ? (
-                    <img src={profile.avatar} alt="Profile" className="rounded-full h-full w-full object-cover" />
+                    <img
+                      src={profile.avatar}
+                      alt="Profile"
+                      className="rounded-full h-full w-full object-cover"
+                    />
                   ) : (
                     <User className="h-12 w-12 text-gray-400" />
                   )}
+                  {isEditing && (
+                    <>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                      <div className="absolute bottom-0 bg-black bg-opacity-50 text-white text-xs w-full text-center py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        Change Photo
+                      </div>
+                    </>
+                  )}
                 </div>
+
                 <div className="ml-6 mb-2">
-                  <h1 className="text-4xl font-extrabold text-gray-900">
-                    {profile?.user?.username || "No Username"}
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                    {profile.user?.username || "No Username"}
                   </h1>
-                  {profile?.title && <p className="text-gray-600">{profile.title}</p>}
+                  {profile.title && (
+                    <p className="text-gray-600">{profile.title}</p>
+                  )}
                 </div>
               </div>
-              <div className="flex space-x-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <button
                   onClick={() => setIsEditing(!isEditing)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   <Edit className="h-4 w-4" />
                   <span>{isEditing ? "Cancel" : "Edit Profile"}</span>
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                  className="flex items-center justify-center px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
                 >
-                  <span>Logout</span>
+                  Logout
                 </button>
               </div>
             </div>
 
-            <div className="mt-4 flex space-x-4">
-              {profile?.github && (
+            <div className="mt-4 flex gap-4">
+              {profile.github && (
                 <a
                   href={ensureValidUrl(profile.github)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-gray-500 hover:text-gray-700"
+                  aria-label="GitHub"
                 >
                   <Github className="h-5 w-5" />
                 </a>
               )}
-              {profile?.linkedin && (
+              {profile.linkedin && (
                 <a
                   href={ensureValidUrl(profile.linkedin)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-gray-500 hover:text-gray-700"
+                  aria-label="LinkedIn"
                 >
                   <Linkedin className="h-5 w-5" />
                 </a>
               )}
-              {profile?.website && (
+              {profile.website && (
                 <a
                   href={ensureValidUrl(profile.website)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-gray-500 hover:text-gray-700"
+                  aria-label="Website"
                 >
                   <Globe className="h-5 w-5" />
                 </a>
@@ -215,160 +270,112 @@ const Profile = () => {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {[
                     { label: "Bio", name: "bio", type: "textarea", icon: null },
-                    { label: "Skills", name: "skills", type: "input", placeholder: "JavaScript, React, Node.js", icon: null },
-                    { label: "GitHub URL", name: "github", type: "url", icon: <Github className="h-5 w-5 text-gray-400" /> },
-                    { label: "LinkedIn URL", name: "linkedin", type: "url", icon: <Linkedin className="h-5 w-5 text-gray-400" /> },
-                    { label: "Website", name: "website", type: "url", icon: <Globe className="h-5 w-5 text-gray-400" /> },
-                    { label: "Location", name: "location", type: "text", icon: <MapPin className="h-5 w-5 text-gray-400" /> },
-                  ].map(({ label, name, type, placeholder, icon }) => (
-                    <div key={name}>
-                      <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">
-                        {label}
+                    {
+                      label: "Skills (comma separated)",
+                      name: "skills",
+                      type: "text",
+                      placeholder: "JavaScript, React, Node.js",
+                      icon: null,
+                    },
+                    {
+                      label: "GitHub URL",
+                      name: "github",
+                      type: "url",
+                      icon: <Github className="h-5 w-5 text-gray-400" />,
+                    },
+                    {
+                      label: "LinkedIn URL",
+                      name: "linkedin",
+                      type: "url",
+                      icon: <Linkedin className="h-5 w-5 text-gray-400" />,
+                    },
+                    {
+                      label: "Website",
+                      name: "website",
+                      type: "url",
+                      icon: <Globe className="h-5 w-5 text-gray-400" />,
+                    },
+                    {
+                      label: "Location",
+                      name: "location",
+                      type: "text",
+                      icon: <MapPin className="h-5 w-5 text-gray-400" />,
+                    },
+                  ].map((field) => (
+                    <div key={field.name}>
+                      <label htmlFor={field.name} className="block text-sm font-medium text-gray-700 mb-1">
+                        {field.label}
                       </label>
                       <div className="relative rounded-md shadow-sm">
-                        {icon && (
+                        {field.icon && (
                           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            {icon}
+                            {field.icon}
                           </div>
                         )}
-                        {type === "textarea" ? (
+                        {field.type === "textarea" ? (
                           <textarea
-                            id={name}
-                            name={name}
-                            rows={4}
-                            value={formData[name]}
+                            id={field.name}
+                            name={field.name}
+                            value={formData[field.name]}
                             onChange={handleChange}
-                            className={`block w-full ${icon ? "pl-10" : "pl-3"} pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
+                            rows={4}
+                            className={`block w-full ${field.icon ? 'pl-10' : ''} sm:text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500`}
                           />
                         ) : (
                           <input
-                            id={name}
-                            name={name}
-                            type={type}
-                            value={formData[name]}
+                            type={field.type}
+                            id={field.name}
+                            name={field.name}
+                            placeholder={field.placeholder}
+                            value={formData[field.name]}
                             onChange={handleChange}
-                            placeholder={placeholder}
-                            className={`block w-full ${icon ? "pl-10" : "pl-3"} pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
+                            className={`block w-full ${field.icon ? 'pl-10' : ''} sm:text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500`}
                           />
                         )}
                       </div>
                     </div>
                   ))}
 
-                  <div className="flex justify-end space-x-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsEditing(false)}
-                      className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                      {isLoading ? (
-                        <Loader2 className="h-5 w-5 animate-spin mx-auto" />
-                      ) : (
-                        "Save Changes"
-                      )}
-                    </button>
-                  </div>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {isLoading ? "Saving..." : "Save Changes"}
+                  </button>
                 </form>
               </div>
             ) : (
-              <div className="bg-white rounded-xl shadow-sm overflow-hidden p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">About</h2>
-                {profile?.bio ? (
-                  <p className="text-gray-700 whitespace-pre-line">{profile.bio}</p>
-                ) : (
-                  <p className="text-gray-400 italic">No bio added yet</p>
+              <div className="bg-white rounded-xl shadow-sm overflow-hidden p-6 space-y-6">
+                {profile.bio && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-500">Bio</h3>
+                    <p className="text-gray-800 mt-1 whitespace-pre-line">{profile.bio}</p>
+                  </div>
                 )}
-
-                <div className="mt-6">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Skills</h2>
-                  {profile?.skills?.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
+                {profile.skills?.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-500">Skills</h3>
+                    <div className="flex flex-wrap gap-2 mt-2">
                       {profile.skills.map((skill, index) => (
                         <span
                           key={index}
-                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                          className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
                         >
-                          {skill.trim()}
+                          {skill}
                         </span>
                       ))}
                     </div>
-                  ) : (
-                    <p className="text-gray-400 italic">No skills added yet</p>
-                  )}
-                </div>
+                  </div>
+                )}
+                {profile.location && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-500">Location</h3>
+                    <p className="text-gray-800 mt-1">{profile.location}</p>
+                  </div>
+                )}
               </div>
             )}
-          </div>
-
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Details</h2>
-              <div className="space-y-4">
-                {profile?.location && (
-                  <div className="flex items-start">
-                    <MapPin className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
-                    <div>
-                      <p className="text-sm text-gray-500">Location</p>
-                      <p className="text-gray-900">{profile.location}</p>
-                    </div>
-                  </div>
-                )}
-                {profile?.github && (
-                  <div className="flex items-start">
-                    <Github className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
-                    <div>
-                      <p className="text-sm text-gray-500">GitHub</p>
-                      <a
-                        href={ensureValidUrl(profile.github)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        {profile.github.replace(/^https?:\/\//, "")}
-                      </a>
-                    </div>
-                  </div>
-                )}
-                {profile?.linkedin && (
-                  <div className="flex items-start">
-                    <Linkedin className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
-                    <div>
-                      <p className="text-sm text-gray-500">LinkedIn</p>
-                      <a
-                        href={ensureValidUrl(profile.linkedin)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        {profile.linkedin.replace(/^https?:\/\//, "")}
-                      </a>
-                    </div>
-                  </div>
-                )}
-                {profile?.website && (
-                  <div className="flex items-start">
-                    <Globe className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
-                    <div>
-                      <p className="text-sm text-gray-500">Website</p>
-                      <a
-                        href={ensureValidUrl(profile.website)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        {profile.website.replace(/^https?:\/\//, "")}
-                      </a>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
         </div>
       </div>
