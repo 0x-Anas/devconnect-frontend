@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { useDispatch, useSelector } from "react-redux";
-import { updateProfile, selectUser } from "../redux/authSlice";
+import { useDispatch } from "react-redux";
+import { updateProfile } from "../redux/authSlice";
 import axiosInstance from "../api/axios";
+import { getAvatarUrl } from "../utils/avatarUrl";
 import { updateMyProfile, getMyProfile } from "../api/profile";
 import { Edit, Globe, Github, Linkedin, MapPin, User, Loader2 } from "lucide-react";
 
@@ -21,7 +22,7 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const user = useSelector(selectUser);
+  //const user = useSelector(selectUser);
   const fileInputRef = useRef(null);
 
   const ensureValidUrl = (url) => {
@@ -98,19 +99,56 @@ const Profile = () => {
     formData.append("profilePicture", file);
 
     try {
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      console.log("Uploading file:", file.name, file.size, file.type);
+
       const res = await axiosInstance.put("/profile/upload/profile-picture", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`
         },
       });
-      dispatch(updateProfile({ avatar: res.data.avatar }));
-      if (profile) {
-        setProfile({ ...profile, avatar: res.data.avatar });
+
+      console.log("Upload response:", res.data);
+
+      const imageUrl = res.data.avatar;
+      if (!imageUrl) {
+        throw new Error("Server response missing image URL");
       }
+
+      // Construct full URL
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
+      const fullImageUrl = imageUrl.startsWith("http") 
+        ? imageUrl 
+        : `${baseUrl.replace(/\/api$/, "")}${imageUrl}`;
+
+      // Add timestamp to force cache refresh
+      const timestampedUrl = `${fullImageUrl}?t=${Date.now()}`;
+
+      // Update both Redux and local state
+      dispatch(updateProfile({ avatar: timestampedUrl }));
+      setProfile(prev => ({ 
+        ...prev, 
+        avatar: timestampedUrl,
+        user: {
+          ...prev.user,
+          profilePicture: timestampedUrl
+        }
+      }));
+
       toast.success("Profile picture updated successfully");
     } catch (err) {
-      console.error("Upload failed", err);
-      toast.error("Failed to update profile picture");
+      console.error("Upload error:", {
+        error: err,
+        response: err.response?.data
+      });
+      toast.error(err.response?.data?.message || "Failed to update profile picture");
+      
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token");
+        sessionStorage.removeItem("token");
+        navigate("/login");
+      }
     }
   };
 
@@ -161,6 +199,7 @@ const Profile = () => {
       </div>
     );
   }
+  const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
@@ -174,15 +213,25 @@ const Profile = () => {
                   className="relative group h-24 w-24 rounded-full border-4 border-white bg-white flex items-center justify-center shadow-md overflow-hidden cursor-pointer"
                   onClick={() => isEditing && fileInputRef.current?.click()}
                 >
-                  {profile?.avatar ? (
-                    <img
-                      src={profile.avatar}
-                      alt="Profile"
-                      className="rounded-full h-full w-full object-cover"
-                    />
-                  ) : (
-                    <User className="h-12 w-12 text-gray-400" />
-                  )}
+                {profile?.avatar || profile.user?.profilePicture ? (
+                  <img
+                    src={getAvatarUrl(profile.avatar || profile.user?.profilePicture)}
+                    alt="Profile"
+                    className="rounded-full h-full w-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = '/default-avatar.jpg';
+                      console.error(
+                        'Failed to load avatar:',
+                        profile.avatar || profile.user?.profilePicture
+                      );
+                    }}
+                    key={profile.avatar || profile.user?.profilePicture}
+                  />
+                ) : (
+                  <User className="h-12 w-12 text-gray-400" />
+                )}
+
                   {isEditing && (
                     <>
                       <input
