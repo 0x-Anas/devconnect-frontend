@@ -1,38 +1,53 @@
 // store/authSlice.js
 import { createSlice } from '@reduxjs/toolkit';
+import { fetchMyProfile } from './profileSlice';
 
-const userFromStorage = JSON.parse(localStorage.getItem('user')) || JSON.parse(sessionStorage.getItem('user'));
+const getStoredUser = () => {
+  const localUser = localStorage.getItem('user');
+  const sessionUser = sessionStorage.getItem('user');
+  return localUser ? JSON.parse(localUser) : sessionUser ? JSON.parse(sessionUser) : null;
+};
 
 const authSlice = createSlice({
   name: 'auth',
   initialState: {
-    user: userFromStorage || null,
+    user: getStoredUser(),
   },
   reducers: {
     loginSuccess: (state, action) => {
-      state.user = action.payload;
-      // Store user info in local/session storage
-      localStorage.setItem('user', JSON.stringify(action.payload));
-      sessionStorage.setItem('user', JSON.stringify(action.payload));
+      const { user, rememberMe } = action.payload;
+      state.user = user;
+
+      const storage = rememberMe ? localStorage : sessionStorage;
+      storage.setItem('user', JSON.stringify(user));
+      // Optional: store token if you're not using httpOnly cookie
+      // storage.setItem('token', user.token);
+        return async (dispatch) => {
+        dispatch(fetchMyProfile());
+      };
     },
+
     logout: (state) => {
       state.user = null;
-      localStorage.removeItem('token');
       localStorage.removeItem('user');
-      sessionStorage.removeItem('token');
       sessionStorage.removeItem('user');
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
     },
+
     updateProfile: (state, action) => {
       state.user = { ...state.user, ...action.payload };
-      localStorage.setItem('user', JSON.stringify(state.user));
-      sessionStorage.setItem('user', JSON.stringify(state.user));
-    }
+
+      // Update in the correct storage (where user originally stored)
+      const stored = localStorage.getItem('user') ? localStorage : sessionStorage;
+      stored.setItem('user', JSON.stringify(state.user));
+    },
   },
 });
 
 export const { loginSuccess, logout, updateProfile } = authSlice.actions;
 
-// Selector to access user data
+// Selector
 export const selectUser = (state) => state.auth.user;
 
 export default authSlice.reducer;
